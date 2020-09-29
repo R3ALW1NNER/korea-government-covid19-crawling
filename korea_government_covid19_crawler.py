@@ -1,30 +1,14 @@
 # Create based on python 3.8
-import platform
-import pprint
 import time
-from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup, element
 
+import date_util
+from constant import *
+
 base_url = "https://www.cdc.go.kr"
 list_url = base_url + "/board/board.es?mid=a20501000000&bid=0015"
-
-
-def today_date_str(flag="normal"):
-    # %Y/%-m/%-d Linux, MacOS
-    # %Y/%#m/%#d Windows
-    if flag == "normal":
-        if platform.platform().lower().find("windows") > -1:
-            today_str = datetime.now().strftime("%#m월 %d일, 0시")
-        else:
-            today_str = datetime.now().strftime("%-m월 %d일, 0시")
-    else:
-        if platform.platform().lower().find("windows") > -1:
-            today_str = datetime.now().strftime("%#m.%d.")
-        else:
-            today_str = datetime.now().strftime("%-m.%d.")
-    return today_str
 
 
 def get_today_post_link():
@@ -35,7 +19,7 @@ def get_today_post_link():
         req = requests.get(list_url)
         bs = BeautifulSoup(req.text, "html.parser")
         for row in bs.find("div", {"class": "dbody"}).find_all("ul"):
-            if row.find("li", {"class": "title title2"}).find("a").get("title").find(today_date_str()) > -1:
+            if row.find("li", {"class": "title title2"}).find("a").get("title").find(date_util.today_date_str()) > -1:
                 url = row.find("li", {"class": "title title2"}).find("a").get("href")
                 break
         else:
@@ -50,35 +34,35 @@ def get_today_post_to_bs4():
     return BeautifulSoup(detail_req.text, "html.parser")
 
 
-def country_parsing(country_result_dict):
+def internal_parsing(internal_result_dict):
     bs = get_today_post_to_bs4()
 
-    country_rows = bs.find_all("tbody")[0].find_all("tr")
-    country_title_row = country_rows[0]
-    country_new_data_row = country_rows[1]
-    country_total_data_row = country_rows[2]
+    internal_rows = bs.find_all("tbody")[0].find_all("tr")
+    internal_title_row = internal_rows[0]
+    internal_new_data_row = internal_rows[1]
+    internal_total_data_row = internal_rows[2]
 
     key_data_list = list()
-    for i, row in enumerate(country_title_row):
+    for i, row in enumerate(internal_title_row):
         if isinstance(row, element.NavigableString) or i == 1:
             continue
         key_data_list.append(row.find("p").text)
 
     new_data_list = list()
-    for i, row in enumerate(country_new_data_row):
+    for i, row in enumerate(internal_new_data_row):
         if isinstance(row, element.NavigableString) or i == 1:
             continue
         new_data_list.append(row.find("p").text.replace("*", "").replace(",", ""))
 
     total_data_list = list()
-    for i, row in enumerate(country_total_data_row):
+    for i, row in enumerate(internal_total_data_row):
         if isinstance(row, element.NavigableString) or i == 1:
             continue
         total_data_list.append(row.find("p").text.replace("*", "").replace(",", ""))
 
     # Country summary
     for i, key in enumerate(key_data_list):
-        country_result_dict[key] = {
+        internal_result_dict[key] = {
             "new": int(new_data_list[i]),
             "total": int(total_data_list[i])
         }
@@ -112,7 +96,7 @@ def oversea_parsing(oversea_result_dict):
 def definite_mgmt_state(definite_state_dict):
     bs = get_today_post_to_bs4()
     definite_state_rows = bs.find_all("tbody")[2].find_all("tr")
-    today_str = today_date_str("abnormal")
+    today_str = date_util.today_date_str("abnormal")
 
     isolation_clear = None
     isolation_ing = None
@@ -127,20 +111,6 @@ def definite_mgmt_state(definite_state_dict):
             isolation_ing = int(data[2].text.replace("\n", "").replace("*", "").replace(",", ""))
             death = int(data[4].text.replace("\n", "").replace("*", "").replace(",", ""))
 
-    definite_state_dict["definite_state"] = {
-        "isolation_clear": isolation_clear, "isolation_ing": isolation_ing, "death": death
-    }
-
-
-if __name__ == '__main__':
-    country_dict = dict()
-    oversea_dict = dict()
-    definite_dict = dict()
-
-    country_parsing(country_dict)
-    oversea_parsing(oversea_dict)
-    definite_mgmt_state(definite_dict)
-
-    pprint.pprint(country_dict)
-    pprint.pprint(oversea_dict)
-    pprint.pprint(definite_dict)
+    definite_state_dict[K_ISOLATION_CLEAR] = isolation_clear
+    definite_state_dict[K_ISOLATION_ING] = isolation_ing
+    definite_state_dict[K_DEATH] = death

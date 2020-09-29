@@ -1,0 +1,3 @@
+K_ISOLATION_CLEAR = "격리해제"
+K_ISOLATION_ING = "격리중"
+K_DEATH = "사망자"
