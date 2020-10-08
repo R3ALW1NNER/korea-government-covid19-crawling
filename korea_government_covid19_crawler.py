@@ -1,4 +1,5 @@
 # Create based on python 3.8
+import logging
 import time
 
 import requests
@@ -23,14 +24,16 @@ def get_today_post_link():
                 url = row.find("li", {"class": "title title2"}).find("a").get("href")
                 break
         else:
-            print("data not created... 10 sec sleep")
-            time.sleep(10)
+            logging.info("data not created... 5 sec sleep")
+            time.sleep(5)
 
+    logging.info("post link : {}".format(base_url + url))
     return base_url + url
 
 
 def get_today_post_to_bs4():
     detail_req = requests.get(get_today_post_link())
+    logging.info("reuqest status code : {}".format(detail_req.status_code))
     return BeautifulSoup(detail_req.text, "html.parser")
 
 
